@@ -1,0 +1,16 @@
+package com.example.demo;
+import jakarta.servlet.*; import jakarta.servlet.http.*; import org.springframework.context.annotation.*; import org.springframework.security.authentication.*; import org.springframework.security.config.annotation.web.builders.HttpSecurity; import org.springframework.security.config.http.SessionCreationPolicy; import org.springframework.security.core.context.SecurityContextHolder; import org.springframework.security.core.userdetails.*; import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.security.web.*; import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; import org.springframework.web.filter.OncePerRequestFilter; import org.springframework.stereotype.Component; import org.springframework.web.cors.*; import java.io.IOException; import java.util.*;
+@Configuration class SecurityConfig {
+ @Bean PasswordEncoder passwordEncoder(){
+    return new BCryptPasswordEncoder();
+}
+ @Bean SecurityFilterChain filterChain(HttpSecurity http,JwtFilter jwt) throws Exception {
+    return http.csrf(c->c.disable()).cors(c->c.configurationSource(cors())).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(a->a.requestMatchers("/auth/**","/error").permitAll().anyRequest().authenticated()).addFilterBefore(jwt,UsernamePasswordAuthenticationFilter.class).build();}
+ @Bean CorsConfigurationSource cors(){CorsConfiguration c=new CorsConfiguration();c.setAllowedOrigins(List.of("http://localhost:5173","http://127.0.0.1:5173"));c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));c.setAllowedHeaders(List.of("*"));c.setAllowCredentials(true);UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource();s.registerCorsConfiguration("/**",c);return s;}
+}
+@Component class JwtFilter extends OncePerRequestFilter {
+ private final JwtService jwt;
+  JwtFilter(JwtService jwt){this.jwt=jwt;}
+ @Override 
+ protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain)throws ServletException,IOException {String h=req.getHeader("Authorization");if(h!=null&&h.startsWith("Bearer ")){String t=h.substring(7);if(jwt.valid(t)){String u=jwt.username(t);var a=new UsernamePasswordAuthenticationToken(u,null,List.of());SecurityContextHolder.getContext().setAuthentication(a);}}chain.doFilter(req,res);}
+}
