@@ -1,9 +1,76 @@
+
 package com.example.demo;
-import io.jsonwebtoken.*; import io.jsonwebtoken.security.Keys; import org.springframework.beans.factory.annotation.Value; import org.springframework.stereotype.Service; import javax.crypto.SecretKey; import java.nio.charset.StandardCharsets; import java.util.Date;
-@Service public class JwtService {
- private final SecretKey key; private final long expiration;
- public JwtService(@Value("${app.jwt.secret}") String secret,@Value("${app.jwt.expiration-ms}") long expiration){this.key=Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));this.expiration=expiration;}
- public String generate(String username,String role){return Jwts.builder().subject(username).claim("role",role).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis()+expiration)).signWith(key).compact();}
- public String username(String token){return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().getSubject();}
- public boolean valid(String token){try{username(token);return true;}catch(Exception e){return false;}}
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+
+@Service
+public class JwtService {
+
+    // Secret Key and Token Expiration
+    private final SecretKey key;
+    private final long expiration;
+
+    // Constructor
+    public JwtService(
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${app.jwt.expiration-ms}") long expiration) {
+
+        this.key = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
+
+        this.expiration = expiration;
+    }
+
+    // =====================================
+    // 1. GENERATE JWT TOKEN
+    // =====================================
+
+    public String generate(String username, String role) {
+
+        return Jwts.builder()
+                .subject(username)
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key)
+                .compact();
+    }
+
+    // =====================================
+    // 2. EXTRACT USERNAME FROM TOKEN
+    // =====================================
+
+    public String username(String token) {
+
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+    }
+
+    // =====================================
+    // 3. VALIDATE JWT TOKEN
+    // =====================================
+
+    public boolean valid(String token) {
+
+        try {
+            username(token);
+            return true;
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
